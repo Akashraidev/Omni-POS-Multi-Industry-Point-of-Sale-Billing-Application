@@ -41,14 +41,46 @@ class _EstimatesScreenState extends State<EstimatesScreen> {
   }
 
   Future<void> _handleConvertToSale(Estimate estimate) async {
+    final estProv = context.read<EstimateProvider>();
     final products = context.read<ProductProvider>().allProducts;
     final cart = context.read<CartProvider>();
 
-    await context.read<EstimateProvider>().convertEstimateToCart(
-          estimate: estimate,
-          cart: cart,
-          availableProducts: products,
+    // Re-fetch from DB to guard against race conditions / stale UI state.
+    final fresh = await estProv.repository.getEstimateById(estimate.id);
+    if (fresh == null || fresh.isConverted || fresh.isVoided) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(fresh == null
+                ? 'Estimate not found.'
+                : 'Estimate ${estimate.estimateNo} is already ${fresh.displayStatus.toLowerCase()} and cannot be converted.'),
+            backgroundColor: const Color(0xFFDC2626),
+          ),
         );
+      }
+      return;
+    }
+
+    await estProv.convertEstimateToCart(
+      estimate: fresh,
+      cart: cart,
+      availableProducts: products,
+    );
+
+    // Atomically stamp as Converted in the DB.
+    final stamped = await estProv.markConverted(fresh.id, '');
+    if (!stamped) {
+      cart.clearCart();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Estimate ${estimate.estimateNo} was just converted by another session.'),
+            backgroundColor: const Color(0xFFDC2626),
+          ),
+        );
+      }
+      return;
+    }
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

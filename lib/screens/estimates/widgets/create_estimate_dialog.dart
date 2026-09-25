@@ -91,10 +91,17 @@ class _CreateEstimateDialogState extends State<CreateEstimateDialog> {
           );
 
       if (!mounted) return;
+
+      // Clear cart AFTER saving so the estimate captures the correct totals.
+      cart.clearCart();
+
+      // Close the create-estimate dialog first.
       Navigator.pop(context, estimate);
 
-      // Immediately show the Estimate Slip
-      EstimateSlipDialog.show(context, estimate);
+      // Show the generated slip. Pass okOnly=true so the footer shows
+      // "OK" (dismiss) + Print + Share — but NOT "Convert to Sale"
+      // (user would go to Estimates screen to convert later).
+      EstimateSlipDialog.show(context, estimate, okOnly: true);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

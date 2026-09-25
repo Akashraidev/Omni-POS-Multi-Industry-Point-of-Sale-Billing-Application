@@ -16,22 +16,30 @@ class EstimateSlipDialog extends StatelessWidget {
   final Estimate estimate;
   final VoidCallback? onConverted;
 
+  /// When true the footer shows "OK" (dismiss) + Print + Share
+  /// instead of "Convert to Sale". Used right after creating an estimate
+  /// from the POS cart so the user doesn't accidentally double-convert.
+  final bool okOnly;
+
   const EstimateSlipDialog({
     super.key,
     required this.estimate,
     this.onConverted,
+    this.okOnly = false,
   });
 
   static Future<void> show(
     BuildContext context,
     Estimate estimate, {
     VoidCallback? onConverted,
+    bool okOnly = false,
   }) {
     return showDialog(
       context: context,
       builder: (_) => EstimateSlipDialog(
         estimate: estimate,
         onConverted: onConverted,
+        okOnly: okOnly,
       ),
     );
   }
@@ -233,21 +241,81 @@ class EstimateSlipDialog extends StatelessWidget {
   }
 
   Future<void> _convertToSale(BuildContext context) async {
+    final estProv = context.read<EstimateProvider>();
     final products = context.read<ProductProvider>().allProducts;
     final cart = context.read<CartProvider>();
 
-    await context.read<EstimateProvider>().convertEstimateToCart(
-          estimate: estimate,
-          cart: cart,
-          availableProducts: products,
+    // --- Single-conversion guard: re-fetch from DB to check current status ---
+    final fresh = await estProv.repository.getEstimateById(estimate.id);
+    if (fresh == null) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Estimate not found. It may have been deleted.'),
+            backgroundColor: Color(0xFFDC2626),
+          ),
         );
+      }
+      return;
+    }
+    if (fresh.isConverted) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Estimate ${estimate.estimateNo} was already converted to a sale.'),
+            backgroundColor: const Color(0xFFD97706),
+          ),
+        );
+        Navigator.pop(context);
+      }
+      return;
+    }
+    if (fresh.isVoided) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Estimate ${estimate.estimateNo} is voided and cannot be converted.'),
+            backgroundColor: const Color(0xFFDC2626),
+          ),
+        );
+        Navigator.pop(context);
+      }
+      return;
+    }
+
+    await estProv.convertEstimateToCart(
+      estimate: fresh,
+      cart: cart,
+      availableProducts: products,
+    );
+
+    // Atomically mark as Converted in the DB (conditional update on status='Active').
+    // If this returns false, another process beat us to it.
+    final stamped = await estProv.markConverted(fresh.id, '');
+    if (!stamped) {
+      // Race condition: another session just converted this estimate.
+      cart.clearCart();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                'Estimate ${estimate.estimateNo} was just converted by another session. Cart cleared.'),
+            backgroundColor: const Color(0xFFDC2626),
+          ),
+        );
+        Navigator.pop(context);
+      }
+      return;
+    }
 
     if (context.mounted) {
       Navigator.pop(context);
       onConverted?.call();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Estimate ${estimate.estimateNo} loaded into POS Cart! Complete checkout to finalize sale.'),
+          content: Text(
+              'Estimate ${estimate.estimateNo} loaded into POS Cart! Complete checkout to finalize sale.'),
           backgroundColor: const Color(0xFF059669),
         ),
       );
@@ -562,35 +630,71 @@ class EstimateSlipDialog extends StatelessWidget {
                 alignment: WrapAlignment.end,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                    icon: const Icon(Icons.copy_rounded, size: 16),
-                    label: const Text('Copy / Share'),
-                    onPressed: () => _shareQuotationText(context),
-                  ),
-                  OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                    icon: const Icon(Icons.print_rounded, size: 16),
-                    label: const Text('Print Slip'),
-                    onPressed: () => _printEstimatePdf(context),
-                  ),
-                  if (!estimate.isConverted && !estimate.isVoided)
+                  // OK button: shown when dialog is opened right after creating an estimate
+                  if (okOnly)
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF059669),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
-                      icon: const Icon(Icons.shopping_cart_checkout_rounded, size: 16, color: Colors.white),
-                      label: const Text('Convert to Sale', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
-                      onPressed: () => _convertToSale(context),
+                      icon: const Icon(Icons.check_circle_rounded, size: 16),
+                      label: const Text('OK', style: TextStyle(fontWeight: FontWeight.w800)),
+                      onPressed: () => Navigator.pop(context),
+                    )
+                  else ...[
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      icon: const Icon(Icons.copy_rounded, size: 16),
+                      label: const Text('Copy / Share'),
+                      onPressed: () => _shareQuotationText(context),
                     ),
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      icon: const Icon(Icons.print_rounded, size: 16),
+                      label: const Text('Print Slip'),
+                      onPressed: () => _printEstimatePdf(context),
+                    ),
+                    if (!estimate.isConverted && !estimate.isVoided)
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF059669),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        icon: const Icon(Icons.shopping_cart_checkout_rounded, size: 16, color: Colors.white),
+                        label: const Text('Convert to Sale',
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+                        onPressed: () => _convertToSale(context),
+                      ),
+                  ],
+
+                  // Always show Print + Share in okOnly mode too
+                  if (okOnly) ...[
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      icon: const Icon(Icons.copy_rounded, size: 16),
+                      label: const Text('Copy / Share'),
+                      onPressed: () => _shareQuotationText(context),
+                    ),
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      icon: const Icon(Icons.print_rounded, size: 16),
+                      label: const Text('Print Slip'),
+                      onPressed: () => _printEstimatePdf(context),
+                    ),
+                  ],
                 ],
               ),
             ),

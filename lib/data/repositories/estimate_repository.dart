@@ -116,6 +116,26 @@ class EstimateRepository {
     );
   }
 
+  /// Atomically marks an estimate as Converted **only** if it is still Active.
+  ///
+  /// Returns `true` if the row was actually updated (i.e. first caller wins),
+  /// `false` if another process already converted it (row was no longer Active).
+  /// This is the race-condition–safe version of [updateEstimateStatus].
+  Future<bool> atomicMarkConverted(String id, {String? saleId}) async {
+    final db = await _db.database;
+    final updates = <String, dynamic>{'status': 'Converted'};
+    if (saleId != null) updates['converted_sale_id'] = saleId;
+
+    final affected = await db.update(
+      DatabaseTables.tableEstimates,
+      updates,
+      // Only update when status is still 'Active' — prevents double-conversion.
+      where: 'id = ? AND status = ?',
+      whereArgs: [id, 'Active'],
+    );
+    return affected > 0;
+  }
+
   Future<void> deleteEstimate(String id) async {
     final db = await _db.database;
     await db.transaction((txn) async {

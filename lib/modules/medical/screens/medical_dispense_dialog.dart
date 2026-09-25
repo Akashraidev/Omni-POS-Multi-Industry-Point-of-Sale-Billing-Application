@@ -60,7 +60,8 @@ class MedicalDispenseDialog extends StatefulWidget {
 }
 
 class _MedicalDispenseDialogState extends State<MedicalDispenseDialog> {
-  late String _selectedDosageForm;
+  // dosage form is auto-detected from product metadata / name — never editable by cashier.
+  late String _dosageForm;
   late MedicinePackagingMode _packagingMode;
   late int _packSize; // e.g. 10 tablets per strip
   late int _stripCount;
@@ -76,6 +77,9 @@ class _MedicalDispenseDialogState extends State<MedicalDispenseDialog> {
   List<MedicalBatchRow> _batches = [];
 
   bool get isEditMode => widget.cartIndex != null;
+
+  // Convenience getter — used throughout the build tree.
+  String get _selectedDosageForm => _dosageForm;
 
   @override
   void initState() {
@@ -95,8 +99,8 @@ class _MedicalDispenseDialogState extends State<MedicalDispenseDialog> {
       _selectedBatchExpiry = DateFormatter.formatIsoDate(_batches.first.expiryDate);
     }
 
-    // Infer or load dosage form
-    _selectedDosageForm = _inferDosageForm(p);
+    // Dosage form: always derived from product configuration, never editable at billing time.
+    _dosageForm = _inferDosageForm(p);
 
     // Default pack size (tablets/capsules per strip)
     _packSize = (p.metadata['tablets_per_strip'] as num?)?.toInt() ??
@@ -107,7 +111,7 @@ class _MedicalDispenseDialogState extends State<MedicalDispenseDialog> {
     _stripCount = 1;
     _looseCount = 0;
     _singleUnitQty = 1.0;
-    _packagingMode = (_selectedDosageForm == 'tablet' || _selectedDosageForm == 'capsule')
+    _packagingMode = (_dosageForm == 'tablet' || _dosageForm == 'capsule')
         ? MedicinePackagingMode.stripOnly
         : MedicinePackagingMode.singleUnit;
 
@@ -127,7 +131,7 @@ class _MedicalDispenseDialogState extends State<MedicalDispenseDialog> {
           _selectedBatchNo = it.selectedBatch;
           _selectedBatchExpiry = it.batchExpiry;
         }
-        if (it.dosageForm != null) _selectedDosageForm = it.dosageForm!;
+        if (it.dosageForm != null) _dosageForm = it.dosageForm!;
         if (it.packSize != null && it.packSize! > 0) _packSize = it.packSize!;
         if (it.stripCount != null) _stripCount = it.stripCount!;
         if (it.looseCount != null) _looseCount = it.looseCount!;
@@ -195,6 +199,29 @@ class _MedicalDispenseDialogState extends State<MedicalDispenseDialog> {
       return 'tablet';
     }
     return 'other';
+  }
+
+  String _dosageFormLabel(String form) {
+    switch (form) {
+      case 'tablet':
+        return 'Tablet';
+      case 'capsule':
+        return 'Capsule';
+      case 'syrup':
+        return 'Syrup / Liquid';
+      case 'injection':
+        return 'Injection / Vial';
+      case 'cream':
+        return 'Cream / Gel';
+      case 'inhaler':
+        return 'Inhaler';
+      case 'device':
+        return 'Device / Equipment';
+      case 'drops':
+        return 'Drops';
+      default:
+        return 'Other';
+    }
   }
 
   IconData _iconForDosageForm(String form) {
@@ -489,103 +516,40 @@ class _MedicalDispenseDialogState extends State<MedicalDispenseDialog> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Dosage Form Selector
-                    const Text(
-                      'Medicine Type / Dosage Form',
-                      style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
+                    // Dosage Form — read-only badge (auto-detected from product config)
+                    Row(
                       children: [
-                        _DosageChip(
-                          label: 'Tablet',
-                          icon: Icons.medication_rounded,
-                          selected: _selectedDosageForm == 'tablet',
-                          color: const Color(0xFF0284C7),
-                          onTap: () => setState(() {
-                            _selectedDosageForm = 'tablet';
-                            if (!isTabletOrCapsule) {
-                              _packagingMode = MedicinePackagingMode.stripOnly;
-                            }
-                          }),
+                        const Text(
+                          'Medicine Type',
+                          style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
                         ),
-                        _DosageChip(
-                          label: 'Capsule',
-                          icon: Icons.medication_liquid_rounded,
-                          selected: _selectedDosageForm == 'capsule',
-                          color: const Color(0xFFF59E0B),
-                          onTap: () => setState(() {
-                            _selectedDosageForm = 'capsule';
-                            if (!isTabletOrCapsule) {
-                              _packagingMode = MedicinePackagingMode.stripOnly;
-                            }
-                          }),
-                        ),
-                        _DosageChip(
-                          label: 'Syrup / Liq',
-                          icon: Icons.liquor_rounded,
-                          selected: _selectedDosageForm == 'syrup',
-                          color: const Color(0xFF06B6D4),
-                          onTap: () => setState(() {
-                            _selectedDosageForm = 'syrup';
-                            _packagingMode = MedicinePackagingMode.singleUnit;
-                          }),
-                        ),
-                        _DosageChip(
-                          label: 'Injection',
-                          icon: Icons.vaccines_rounded,
-                          selected: _selectedDosageForm == 'injection',
-                          color: const Color(0xFFEF4444),
-                          onTap: () => setState(() {
-                            _selectedDosageForm = 'injection';
-                            _packagingMode = MedicinePackagingMode.singleUnit;
-                          }),
-                        ),
-                        _DosageChip(
-                          label: 'Cream / Gel',
-                          icon: Icons.science_outlined,
-                          selected: _selectedDosageForm == 'cream',
-                          color: const Color(0xFF10B981),
-                          onTap: () => setState(() {
-                            _selectedDosageForm = 'cream';
-                            _packagingMode = MedicinePackagingMode.singleUnit;
-                          }),
-                        ),
-                        _DosageChip(
-                          label: 'Inhaler',
-                          icon: Icons.air_rounded,
-                          selected: _selectedDosageForm == 'inhaler',
-                          color: const Color(0xFF8B5CF6),
-                          onTap: () => setState(() {
-                            _selectedDosageForm = 'inhaler';
-                            _packagingMode = MedicinePackagingMode.singleUnit;
-                          }),
-                        ),
-                        _DosageChip(
-                          label: 'Device / Equp',
-                          icon: Icons.medical_services_rounded,
-                          selected: _selectedDosageForm == 'device',
-                          color: const Color(0xFF6366F1),
-                          onTap: () => setState(() {
-                            _selectedDosageForm = 'device';
-                            _packagingMode = MedicinePackagingMode.singleUnit;
-                          }),
-                        ),
-                        _DosageChip(
-                          label: 'Other',
-                          icon: Icons.health_and_safety_rounded,
-                          selected: _selectedDosageForm == 'other',
-                          color: Colors.blueGrey,
-                          onTap: () => setState(() {
-                            _selectedDosageForm = 'other';
-                            _packagingMode = MedicinePackagingMode.singleUnit;
-                          }),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: formColor.withAlpha(18),
+                            borderRadius: AppTokens.borderPill,
+                            border: Border.all(color: formColor.withAlpha(70)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(formIcon, size: 14, color: formColor),
+                              const SizedBox(width: 5),
+                              Text(
+                                _dosageFormLabel(_selectedDosageForm),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: formColor,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 14),
 
                     // Packaging / Dispense Option
                     if (isTabletOrCapsule) ...[

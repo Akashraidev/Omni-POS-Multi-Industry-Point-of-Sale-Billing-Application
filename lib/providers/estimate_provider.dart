@@ -10,6 +10,10 @@ class EstimateProvider extends ChangeNotifier {
   final EstimateRepository _repository = EstimateRepository();
   final Uuid _uuid = const Uuid();
 
+  /// Exposed for components that need to perform a fresh DB look-up before
+  /// a destructive operation (e.g. single-conversion enforcement in EstimateSlipDialog).
+  EstimateRepository get repository => _repository;
+
   List<Estimate> _estimates = [];
   bool _isLoading = false;
   String _selectedFilter = 'All'; // 'All', 'Active', 'Converted', 'Expired'
@@ -187,17 +191,22 @@ class EstimateProvider extends ChangeNotifier {
     if (estimate.notes != null) {
       cart.setNotes(estimate.notes);
     }
+
+    // Notify cart listeners so the POS UI updates immediately.
+    cart.notifyListeners();
   }
 
-  Future<void> markConverted(String estimateId, String saleId) async {
-    await _repository.updateEstimateStatus(
-      estimateId,
-      'Converted',
-      convertedSaleId: saleId,
-    );
+  /// Marks an estimate as Converted using an atomic DB conditional update.
+  ///
+  /// The DB-level WHERE clause ensures only a row with status='Active' is
+  /// updated, so concurrent callers cannot double-convert the same estimate.
+  /// Returns `true` if the status was actually changed (first caller wins).
+  Future<bool> markConverted(String estimateId, String saleId) async {
+    final updated = await _repository.atomicMarkConverted(estimateId, saleId: saleId);
     if (_currentBusinessId != null) {
       await loadEstimates(_currentBusinessId!);
     }
+    return updated;
   }
 
   Future<void> voidEstimate(String estimateId) async {
