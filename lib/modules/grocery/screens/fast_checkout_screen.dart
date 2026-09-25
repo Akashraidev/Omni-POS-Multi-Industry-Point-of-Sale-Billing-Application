@@ -50,7 +50,7 @@ class _FastCheckoutScreenState extends State<FastCheckoutScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Supermarket Quick Touch POS'),
+        title: const Text('Grocery Quick Touch POS'),
       ),
       body: Row(
         children: [

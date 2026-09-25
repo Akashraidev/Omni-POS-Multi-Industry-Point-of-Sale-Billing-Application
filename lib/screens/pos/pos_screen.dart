@@ -99,7 +99,7 @@ class _PosScreenState extends State<PosScreen> {
       return;
     }
 
-    if ((bizType == BusinessType.grocery || bizType == BusinessType.supermarket) &&
+    if (bizType == BusinessType.grocery &&
         product.metadata['is_loose_weight'] == true) {
       LooseItemWeightDialog.show(
         context,

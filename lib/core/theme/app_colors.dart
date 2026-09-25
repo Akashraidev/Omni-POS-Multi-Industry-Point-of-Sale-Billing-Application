@@ -50,10 +50,15 @@ class AppColors {
   static const Color groceryLight = Color(0xFFDCFCE7);
   static const Color groceryDark = Color(0xFF166534);
 
-  // Supermarket / Hypermarket
-  static const Color supermarketPrimary = Color(0xFFEA580C); // Orange
-  static const Color supermarketLight = Color(0xFFFFEDD5);
-  static const Color supermarketDark = Color(0xFF9A3412);
+  // Gym & Fitness Center
+  static const Color gymPrimary = Color(0xFFFF5722); // Deep Athletic Flame / Punch
+  static const Color gymLight = Color(0xFFFFEBE6);
+  static const Color gymDark = Color(0xFFBF360C);
+
+  // Library & Book Store
+  static const Color libraryPrimary = Color(0xFF0369A1); // Deep Scholarly Blue / Ocean
+  static const Color libraryLight = Color(0xFFE0F2FE);
+  static const Color libraryDark = Color(0xFF075985);
 
   // Electronics
   static const Color electronicsPrimary = Color(0xFF4F46E5); // Indigo

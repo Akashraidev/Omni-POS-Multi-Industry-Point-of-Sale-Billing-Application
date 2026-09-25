@@ -22,8 +22,12 @@ class AppTheme {
       brightness: isDark ? Brightness.dark : Brightness.light,
       primary: primary,
       onPrimary: Colors.white,
+      primaryContainer: primary.withAlpha(isDark ? 50 : 25),
+      onPrimaryContainer: primary,
       secondary: secondary,
       onSecondary: Colors.white,
+      secondaryContainer: secondary.withAlpha(isDark ? 50 : 25),
+      onSecondaryContainer: secondary,
       error: AppColors.error,
       onError: Colors.white,
       surface: baseSurface,
@@ -69,12 +73,33 @@ class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: primary,
-          side: BorderSide(color: baseBorder),
+          side: BorderSide(color: primary.withAlpha(120)),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           shape: RoundedRectangleBorder(
             borderRadius: AppTokens.borderMD,
           ),
         ),
+      ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: primary,
+        foregroundColor: Colors.white,
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: AppTokens.borderLG),
+      ),
+      tabBarTheme: TabBarThemeData(
+        labelColor: primary,
+        unselectedLabelColor: textSecondary,
+        indicatorColor: primary,
+        indicatorSize: TabBarIndicatorSize.tab,
+      ),
+      chipTheme: ChipThemeData(
+        selectedColor: primary.withAlpha(35),
+        checkmarkColor: primary,
+        labelStyle: const TextStyle(fontWeight: FontWeight.w500),
+        shape: RoundedRectangleBorder(borderRadius: AppTokens.borderMD),
+      ),
+      progressIndicatorTheme: ProgressIndicatorThemeData(
+        color: primary,
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,

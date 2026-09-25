@@ -6,9 +6,10 @@ export 'business_type.dart';
 import 'electronics/electronics_module.dart';
 import 'garment/garment_module.dart';
 import 'grocery/grocery_module.dart';
+import 'gym/gym_module.dart';
+import 'library/library_module.dart';
 import 'medical/medical_module.dart';
 import 'restaurant/restaurant_module.dart';
-import 'supermarket/supermarket_module.dart';
 
 class BusinessModuleRegistry {
   static final Map<BusinessType, BusinessModuleInterface> _modules = {};
@@ -17,7 +18,8 @@ class BusinessModuleRegistry {
     register(MedicalBusinessModule());
     register(RestaurantBusinessModule());
     register(GroceryBusinessModule());
-    register(SupermarketBusinessModule());
+    register(GymBusinessModule());
+    register(LibraryBusinessModule());
     register(ElectronicsBusinessModule());
     register(GarmentBusinessModule());
   }

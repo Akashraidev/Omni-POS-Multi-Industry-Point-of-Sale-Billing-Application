@@ -4,7 +4,8 @@ enum BusinessType {
   medical,
   restaurant,
   grocery,
-  supermarket,
+  gym,
+  library,
   electronics,
   garment,
 }
@@ -18,8 +19,10 @@ extension BusinessTypeExtension on BusinessType {
         return 'restaurant';
       case BusinessType.grocery:
         return 'grocery';
-      case BusinessType.supermarket:
-        return 'supermarket';
+      case BusinessType.gym:
+        return 'gym';
+      case BusinessType.library:
+        return 'library';
       case BusinessType.electronics:
         return 'electronics';
       case BusinessType.garment:
@@ -35,8 +38,10 @@ extension BusinessTypeExtension on BusinessType {
         return 'Restaurant / Cafe';
       case BusinessType.grocery:
         return 'Grocery / Kirana';
-      case BusinessType.supermarket:
-        return 'Supermarket / Hypermarket';
+      case BusinessType.gym:
+        return 'Gym & Fitness Center';
+      case BusinessType.library:
+        return 'Library & Book Store';
       case BusinessType.electronics:
         return 'Electronics & Gadgets';
       case BusinessType.garment:
@@ -52,8 +57,10 @@ extension BusinessTypeExtension on BusinessType {
         return 'Restaurant';
       case BusinessType.grocery:
         return 'Grocery';
-      case BusinessType.supermarket:
-        return 'Supermarket';
+      case BusinessType.gym:
+        return 'Gym';
+      case BusinessType.library:
+        return 'Library';
       case BusinessType.electronics:
         return 'Electronics';
       case BusinessType.garment:
@@ -69,8 +76,10 @@ extension BusinessTypeExtension on BusinessType {
         return 'Table floor plans, KDS kitchen tickets, and modifier add-ons.';
       case BusinessType.grocery:
         return 'Weight pricing, fast barcode checkout, and aisle rack mapping.';
-      case BusinessType.supermarket:
-        return 'Multi-aisle hypermarket billing, shelf labels, and loyalty points.';
+      case BusinessType.gym:
+        return 'Memberships, trainer plans, workout passes, attendance & supplements.';
+      case BusinessType.library:
+        return 'Book catalog, ISBN tracker, borrow & return ledger, and overdue fines.';
       case BusinessType.electronics:
         return 'Serial/IMEI tracker, warranty cards, AMC, and repair tickets.';
       case BusinessType.garment:
@@ -86,8 +95,10 @@ extension BusinessTypeExtension on BusinessType {
         return Icons.restaurant_rounded;
       case BusinessType.grocery:
         return Icons.shopping_basket_rounded;
-      case BusinessType.supermarket:
-        return Icons.local_grocery_store_rounded;
+      case BusinessType.gym:
+        return Icons.fitness_center_rounded;
+      case BusinessType.library:
+        return Icons.local_library_rounded;
       case BusinessType.electronics:
         return Icons.devices_other_rounded;
       case BusinessType.garment:
@@ -103,8 +114,10 @@ extension BusinessTypeExtension on BusinessType {
         return const Color(0xFFE11D48); // Rose / Warm Crimson
       case BusinessType.grocery:
         return const Color(0xFF16A34A); // Emerald / Green
-      case BusinessType.supermarket:
-        return const Color(0xFFEA580C); // Orange / Hypermarket
+      case BusinessType.gym:
+        return const Color(0xFFFF5722); // Athletic Punch Flame
+      case BusinessType.library:
+        return const Color(0xFF0369A1); // Scholarly Sapphire Blue
       case BusinessType.electronics:
         return const Color(0xFF4F46E5); // Indigo
       case BusinessType.garment:
@@ -120,8 +133,10 @@ extension BusinessTypeExtension on BusinessType {
         return const Color(0xFFF59E0B);
       case BusinessType.grocery:
         return const Color(0xFF84CC16);
-      case BusinessType.supermarket:
+      case BusinessType.gym:
         return const Color(0xFFF59E0B);
+      case BusinessType.library:
+        return const Color(0xFFD97706);
       case BusinessType.electronics:
         return const Color(0xFF06B6D4);
       case BusinessType.garment:
@@ -142,12 +157,16 @@ extension BusinessTypeExtension on BusinessType {
         return BusinessType.restaurant;
       case 'grocery':
         return BusinessType.grocery;
-      case 'supermarket':
-        return BusinessType.supermarket;
+      case 'gym':
+        return BusinessType.gym;
+      case 'library':
+        return BusinessType.library;
       case 'electronics':
         return BusinessType.electronics;
       case 'garment':
         return BusinessType.garment;
+      case 'supermarket':
+        return BusinessType.grocery; // Graceful fallback for legacy records
       default:
         return BusinessType.grocery;
     }

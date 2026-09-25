@@ -20,17 +20,29 @@ The app dynamically adapts its entire UI, navigation, business logic, workflows,
    - Kitchen Order Ticket (KOT) and Kitchen Display System (**KDS**) view with live preparation timer stages (*Placed → Preparing → Ready → Served*).
    - Menu modifiers & add-ons (Milk choices, Pizza crusts, Spice levels).
 
-3. **Grocery Shop / Supermarket**
+3. **Grocery Shop / Kirana**
    - Weight-based & loose item calculator (per kg / gram pricing with tare presets: 250g, 500g, 1kg, etc.).
-   - Supermarket high-throughput **Fast Touch POS mode** with barcode scanner integration.
+   - Fast Touch POS mode with barcode scanner integration.
    - Aisle and rack/shelf location mapping.
 
-4. **Electronics Shop**
+4. **Gym & Fitness Center**
+   - Member management & subscriptions (Monthly, Quarterly, Annual, PT passes).
+   - Instant attendance check-in logger with streak and visit counter.
+   - Trainer schedule & roster management with batch slot allocations.
+   - Club locker allocation status tracker.
+
+5. **Library & Book Store**
+   - Circulation ledger for lending and borrowing books.
+   - Automatic overdue day tracker and late return fine calculator.
+   - Book catalog mapped to shelf and rack numbers with ISBN tracking.
+   - Multiple copies & circulation availability counters.
+
+6. **Electronics Shop**
    - Serial & IMEI tracking captured upon checkout.
    - Warranty tracker hub with validity countdowns and claim records.
    - Repair and service job card management (*Intake → Diagnosing → Repairing → Ready for Delivery*).
 
-5. **Garment / Apparel Shop**
+7. **Garment / Apparel Shop**
    - Size (S / M / L / XL / XXL) × Color multi-shade variant matrix.
    - Live visual stock matrix table view per SKU.
    - Fast variant picker sheet in POS cart for tapping size and color chips.
@@ -46,7 +58,7 @@ The codebase follows a clean layered and modular plugin architecture:
 lib/
 ├── core/
 │   ├── database/        # SQLite setup, ffi init, table creation, migrations, seed data
-│   ├── theme/           # AppColors, AppTokens, AppTypography, AppTheme (5 dynamic palettes)
+│   ├── theme/           # AppColors, AppTokens, AppTypography, AppTheme (dynamic palettes per sector)
 │   ├── utils/           # Currency, Date, and Responsive Layout helpers
 │   └── widgets/         # Shared component library (AppButton, AppCard, AppChip, etc.)
 ├── data/
@@ -57,7 +69,9 @@ lib/
 │   ├── business_registry.dart # Central extensible registry
 │   ├── medical/         # Pharmacy module (FEFO, batches, expiry alerts, narcotics)
 │   ├── restaurant/      # Cafe module (table floor plan, KDS, modifiers)
-│   ├── grocery/         # Supermarket module (weight scales, fast touch checkout)
+│   ├── grocery/         # Grocery module (weight scales, fast touch checkout)
+│   ├── gym/             # Gym module (memberships, check-in, trainer schedule, lockers)
+│   ├── library/         # Library module (circulation ledger, overdue fines, book catalog)
 │   ├── electronics/     # Electronics module (IMEI tracker, warranty, repair jobs)
 │   └── garment/         # Apparel module (variant matrix, fast variant picker)
 ├── providers/           # State management with MultiProvider

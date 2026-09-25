@@ -19,51 +19,61 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _animController;
+    with TickerProviderStateMixin {
+  late AnimationController _entranceController;
+  late AnimationController _pulseController;
   late Animation<double> _pulse;
   late Animation<double> _fade;
   late Animation<double> _slide;
   String _statusText = 'Initializing OminiPOS...';
+  bool _isInitializing = false;
+  bool _hasNavigated = false;
 
   @override
   void initState() {
     super.initState();
-    _animController = AnimationController(
+
+    // One-shot entrance controller for fade & slide
+    _entranceController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 900),
     );
 
-    // Gentle breathing glow behind the logo (loops).
-    _pulse = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animController, curve: Curves.easeInOut),
-    )..addStatusListener((status) {
-        if (status == AnimationStatus.completed) {
-          _animController.reverse(from: 1.0);
-        } else if (status == AnimationStatus.dismissed) {
-          _animController.forward(from: 0.0);
-        }
-      });
+    // Continuous breathing glow for the logo only
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1600),
+    );
 
-    // One-shot entrance for the content block.
+    // Gentle breathing glow behind the logo (loops independently without affecting fade/slide)
+    _pulse = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+
+    // One-shot entrance for the content block (runs once and stays fully visible)
     _fade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
-        parent: _animController,
-        curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+        parent: _entranceController,
+        curve: const Interval(0.0, 0.7, curve: Curves.easeOut),
       ),
     );
-    _slide = Tween<double>(begin: 22.0, end: 0.0).animate(
+    _slide = Tween<double>(begin: 20.0, end: 0.0).animate(
       CurvedAnimation(
-        parent: _animController,
-        curve: const Interval(0.15, 1.0, curve: Curves.easeOutCubic),
+        parent: _entranceController,
+        curve: const Interval(0.1, 1.0, curve: Curves.easeOutCubic),
       ),
     );
 
-    _animController.forward();
+    _entranceController.forward();
+    _pulseController.repeat(reverse: true);
     _initializeApp();
   }
 
   Future<void> _initializeApp() async {
+    if (_isInitializing) return;
+    _isInitializing = true;
+    final stopwatch = Stopwatch()..start();
+
     try {
       BusinessModuleRegistry.init();
 
@@ -87,8 +97,15 @@ class _SplashScreenState extends State<SplashScreen>
         await context.read<AuthProvider>().init(currentBiz.id);
       }
 
-      await Future.delayed(const Duration(milliseconds: 400));
-      if (!mounted) return;
+      // Smooth, natural splash duration (1800ms) without awkward multi-second delay or repeated entrance
+      final elapsed = stopwatch.elapsedMilliseconds;
+      const minDurationMs = 1800;
+      if (elapsed < minDurationMs) {
+        await Future.delayed(Duration(milliseconds: minDurationMs - elapsed));
+      }
+
+      if (!mounted || _hasNavigated) return;
+      _hasNavigated = true;
 
       final authProv = context.read<AuthProvider>();
 
@@ -109,13 +126,16 @@ class _SplashScreenState extends State<SplashScreen>
         );
       }
     } catch (e) {
-      setState(() => _statusText = 'Error initializing: $e');
+      if (mounted) {
+        setState(() => _statusText = 'Error initializing: $e');
+      }
     }
   }
 
   @override
   void dispose() {
-    _animController.dispose();
+    _entranceController.dispose();
+    _pulseController.dispose();
     super.dispose();
   }
 
@@ -169,19 +189,23 @@ class _SplashScreenState extends State<SplashScreen>
       children: [
         _ambientCircles(width, height),
         Center(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: width * 0.08),
+          child: SingleChildScrollView(
+            physics: const ClampingScrollPhysics(),
+            padding: EdgeInsets.symmetric(
+              horizontal: (width * 0.08).clamp(20.0, 48.0),
+              vertical: 24.0,
+            ),
             child: FadeTransition(
               opacity: _fade,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _logoBlock(width, height),
-                  SizedBox(height: height * 0.032),
+                  SizedBox(height: (height * 0.03).clamp(14.0, 26.0)),
                   _wordmarkBlock(width),
-                  SizedBox(height: height * 0.05),
+                  SizedBox(height: (height * 0.04).clamp(16.0, 36.0)),
                   _progressBlock(width),
-                  SizedBox(height: height * 0.045),
+                  SizedBox(height: (height * 0.035).clamp(14.0, 30.0)),
                   _sectorStrip(width),
                 ],
               ),
@@ -205,21 +229,29 @@ class _SplashScreenState extends State<SplashScreen>
             children: [
               _ambientCircles(width * 0.44, height),
               Center(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: width * 0.3),
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: width * 0.03),
-                    child: FadeTransition(
-                      opacity: _fade,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _logoBlock(width, height),
-                          SizedBox(height: height * 0.035),
-                          _wordmarkBlock(width),
-                          SizedBox(height: height * 0.05),
-                          _progressBlock(width * 0.3),
-                        ],
+                child: SingleChildScrollView(
+                  physics: const ClampingScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(vertical: 24.0),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: (width * 0.36).clamp(280.0, 420.0),
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: (width * 0.02).clamp(16.0, 32.0),
+                      ),
+                      child: FadeTransition(
+                        opacity: _fade,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _logoBlock(width, height),
+                            SizedBox(height: (height * 0.03).clamp(14.0, 28.0)),
+                            _wordmarkBlock(width),
+                            SizedBox(height: (height * 0.04).clamp(16.0, 36.0)),
+                            _progressBlock(width * 0.3),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -238,28 +270,36 @@ class _SplashScreenState extends State<SplashScreen>
         Expanded(
           flex: 56,
           child: Center(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: width * 0.36),
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: width * 0.03),
-                child: FadeTransition(
-                  opacity: _fade,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'ONE PLATFORM. EVERY SECTOR.',
-                        style: TextStyle(
-                          color: Colors.white.withAlpha(160),
-                          fontSize: (width * 0.012).clamp(11.0, 15.0),
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 2.5,
+            child: SingleChildScrollView(
+              physics: const ClampingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(vertical: 24.0),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: (width * 0.44).clamp(360.0, 520.0),
+                ),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: (width * 0.02).clamp(16.0, 32.0),
+                  ),
+                  child: FadeTransition(
+                    opacity: _fade,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'ONE PLATFORM. EVERY SECTOR.',
+                          style: TextStyle(
+                            color: Colors.white.withAlpha(160),
+                            fontSize: (width * 0.012).clamp(11.0, 14.0),
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 2.5,
+                          ),
                         ),
-                      ),
-                      SizedBox(height: height * 0.035),
-                      _sectorGrid(width, height),
-                    ],
+                        SizedBox(height: (height * 0.025).clamp(12.0, 24.0)),
+                        _sectorGrid(width, height),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -399,21 +439,23 @@ class _SplashScreenState extends State<SplashScreen>
 
   // Glass tile grid shown on wide screens.
   Widget _sectorGrid(double width, double height) {
-    final tilePadding = (width * 0.012).clamp(12.0, 20.0);
-    final iconSize = (width * 0.016).clamp(20.0, 30.0);
-    final labelSize = (width * 0.010).clamp(10.0, 13.0);
+    final iconSize = (width * 0.016).clamp(20.0, 28.0);
+    final labelSize = (width * 0.010).clamp(10.0, 12.5);
+    final spacing = (height * 0.016).clamp(8.0, 12.0);
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        // 3 columns on very wide screens, 2 otherwise.
-        final crossCount = constraints.maxWidth > 520 ? 3 : 2;
+        // 4 columns on spacious containers, 3 on standard tablet/desktop, 2 on very narrow.
+        final crossCount = constraints.maxWidth >= 460
+            ? 4
+            : (constraints.maxWidth >= 310 ? 3 : 2);
         return GridView.count(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           crossAxisCount: crossCount,
-          mainAxisSpacing: height * 0.02,
-          crossAxisSpacing: height * 0.02,
-          childAspectRatio: 1.05,
+          mainAxisSpacing: spacing,
+          crossAxisSpacing: spacing,
+          childAspectRatio: 1.35,
           children: BusinessType.values.map((type) {
             return Container(
               decoration: BoxDecoration(
@@ -421,7 +463,7 @@ class _SplashScreenState extends State<SplashScreen>
                 borderRadius: AppTokens.borderLG,
                 border: Border.all(color: Colors.white.withAlpha(28)),
               ),
-              padding: EdgeInsets.all(tilePadding),
+              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 10.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

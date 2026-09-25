@@ -5,20 +5,52 @@ import 'database_tables.dart';
 
 class SeedData {
   static Future<void> populateAllSeedData(Database db) async {
-    // Check if businesses already exist
+    // 1. Clean up supermarket if present from previous runs
+    await _cleanupSupermarket(db);
+
+    // 2. Check if Gym exists, if not seed Gym
+    final gymCount = Sqflite.firstIntValue(
+      await db.rawQuery("SELECT COUNT(*) FROM ${DatabaseTables.tableBusinesses} WHERE type = 'gym'"),
+    );
+    if (gymCount == null || gymCount == 0) {
+      await db.transaction((txn) async {
+        await _seedGym(txn);
+      });
+    }
+
+    // 3. Check if Library exists, if not seed Library
+    final libCount = Sqflite.firstIntValue(
+      await db.rawQuery("SELECT COUNT(*) FROM ${DatabaseTables.tableBusinesses} WHERE type = 'library'"),
+    );
+    if (libCount == null || libCount == 0) {
+      await db.transaction((txn) async {
+        await _seedLibrary(txn);
+      });
+    }
+
+    // 4. Check if other businesses already exist
     final count = Sqflite.firstIntValue(
       await db.rawQuery('SELECT COUNT(*) FROM ${DatabaseTables.tableBusinesses}'),
     );
-    if (count != null && count > 0) return;
+    if (count != null && count > 2) return;
 
     await db.transaction((txn) async {
       await _seedMedical(txn);
       await _seedRestaurant(txn);
       await _seedGrocery(txn);
-      await _seedSupermarket(txn);
       await _seedElectronics(txn);
       await _seedGarment(txn);
     });
+  }
+
+  static Future<void> _cleanupSupermarket(Database db) async {
+    try {
+      await db.delete(DatabaseTables.tableSaleItems, where: 'sale_id IN (SELECT id FROM ${DatabaseTables.tableSales} WHERE business_id = ?)', whereArgs: ['biz_super_01']);
+      await db.delete(DatabaseTables.tableSales, where: 'business_id = ?', whereArgs: ['biz_super_01']);
+      await db.delete(DatabaseTables.tableProducts, where: 'business_id = ?', whereArgs: ['biz_super_01']);
+      await db.delete(DatabaseTables.tableCategories, where: 'business_id = ?', whereArgs: ['biz_super_01']);
+      await db.delete(DatabaseTables.tableBusinesses, where: "id = 'biz_super_01' OR type = 'supermarket'");
+    } catch (_) {}
   }
 
   // -------------------------------------------------------------
@@ -784,39 +816,39 @@ class SeedData {
   }
 
   // -------------------------------------------------------------
-  // 3B. SUPERMARKET / HYPERMARKET SEED
+  // 3B. GYM & FITNESS CENTER SEED
   // -------------------------------------------------------------
-  static Future<void> _seedSupermarket(Transaction txn) async {
-    const bizId = 'biz_super_01';
+  static Future<void> _seedGym(Transaction txn) async {
+    const bizId = 'biz_gym_01';
     final now = DateTime.now();
 
     await txn.insert(DatabaseTables.tableBusinesses, {
       'id': bizId,
-      'name': 'MartMax Hypermarket',
-      'type': BusinessType.supermarket.id,
-      'address': 'Orion Mall, Ring Road Junction',
-      'phone': '+91 98112 44557',
-      'email': 'hello@martmax.in',
-      'tax_number': '27PQRST5678U1Z2',
+      'name': 'IronPulse Fitness & Gym',
+      'type': BusinessType.gym.id,
+      'address': 'Level 3, Olympic Towers, Ring Road',
+      'phone': '+91 98220 55667',
+      'email': 'contact@ironpulsefitness.com',
+      'tax_number': '27GYMFIT1234Z9',
       'currency_symbol': '₹',
       'currency_code': 'INR',
-      'invoice_prefix': 'MM-',
-      'default_tax_rate': 5.0,
-      'receipt_footer': 'Thank you for shopping at MartMax! Collect your loyalty points at the billing counter.',
+      'invoice_prefix': 'GYM-',
+      'default_tax_rate': 18.0,
+      'receipt_footer': 'Push your limits at IronPulse! Train hard, stay strong.',
       'created_at': now.toIso8601String(),
       'settings_json': jsonEncode({
-        'fast_checkout_barcode_mode': true,
-        'support_loose_weight': true,
-        'loyalty_points_enabled': true,
+        'membership_checkin_enabled': true,
+        'pt_trainer_booking': true,
+        'locker_management': true,
       }),
     });
 
     final categories = [
-      {'id': 'cat_super_household', 'name': 'Household & Cleaning', 'icon': 'cleaning_services', 'color_hex': '#0284C7'},
-      {'id': 'cat_super_personal', 'name': 'Personal Care & Beauty', 'icon': 'spa', 'color_hex': '#DB2777'},
-      {'id': 'cat_super_beverages', 'name': 'Beverages & Juices', 'icon': 'local_drink', 'color_hex': '#EA580C'},
-      {'id': 'cat_super_bakery', 'name': 'Bakery & Dairy', 'icon': 'bakery_dining', 'color_hex': '#D97706'},
-      {'id': 'cat_super_frozen', 'name': 'Frozen & Ready-to-Cook', 'icon': 'ac_unit', 'color_hex': '#0EA5E9'},
+      {'id': 'cat_gym_memberships', 'name': 'Membership Passes', 'icon': 'card_membership', 'color_hex': '#FF5722'},
+      {'id': 'cat_gym_pt', 'name': 'Personal Training', 'icon': 'sports_gymnastics', 'color_hex': '#EA580C'},
+      {'id': 'cat_gym_nutrition', 'name': 'Supplements & Protein', 'icon': 'fitness_center', 'color_hex': '#10B981'},
+      {'id': 'cat_gym_beverages', 'name': 'Energy Drinks & Shakes', 'icon': 'local_drink', 'color_hex': '#06B6D4'},
+      {'id': 'cat_gym_gear', 'name': 'Apparel & Accessories', 'icon': 'sports_handball', 'color_hex': '#8B5CF6'},
     ];
     for (final c in categories) {
       await txn.insert(DatabaseTables.tableCategories, {
@@ -831,84 +863,117 @@ class SeedData {
 
     final products = [
       {
-        'id': 'prod_super_detergent',
-        'category_id': 'cat_super_household',
-        'name': 'Surf Excel Easy Wash Detergent Powder 1kg',
-        'sku': 'MM-HH-DET1K',
-        'barcode': '890103101',
-        'purchase_price': 145.00,
-        'selling_price': 185.00,
-        'mrp': 210.00,
-        'stock_qty': 120.0,
-        'min_stock_alert': 20.0,
-        'unit': 'pack',
-        'brand': 'Surf Excel',
+        'id': 'prod_gym_pass_monthly',
+        'category_id': 'cat_gym_memberships',
+        'name': 'Monthly Standard Gym Pass (30 Days)',
+        'sku': 'GYM-MEM-30D',
+        'barcode': '890200101',
+        'purchase_price': 800.00,
+        'selling_price': 1500.00,
+        'mrp': 1800.00,
+        'stock_qty': 999.0,
+        'min_stock_alert': 10.0,
+        'unit': 'pass',
+        'brand': 'IronPulse Club',
         'tax_rate': 18.0,
         'business_metadata_json': jsonEncode({
-          'is_loose_weight': false,
-          'rack_location': 'Aisle 1 - Shelf A',
-          'shelf_label': 'Offer Pack',
+          'is_gym_plan': true,
+          'plan_days': 30,
+          'has_trainer': false,
         }),
       },
       {
-        'id': 'prod_super_shampoo',
-        'category_id': 'cat_super_personal',
-        'name': 'Dove Hairfall Rescue Shampoo 340ml',
-        'sku': 'MM-PC-SHP340',
-        'barcode': '890103102',
-        'purchase_price': 210.00,
-        'selling_price': 265.00,
-        'mrp': 299.00,
-        'stock_qty': 75.0,
-        'min_stock_alert': 12.0,
-        'unit': 'bottle',
-        'brand': 'Dove',
+        'id': 'prod_gym_pass_annual',
+        'category_id': 'cat_gym_memberships',
+        'name': 'Annual VIP All-Access Membership (365 Days)',
+        'sku': 'GYM-MEM-365D',
+        'barcode': '890200102',
+        'purchase_price': 6000.00,
+        'selling_price': 14000.00,
+        'mrp': 18000.00,
+        'stock_qty': 999.0,
+        'min_stock_alert': 5.0,
+        'unit': 'pass',
+        'brand': 'IronPulse Club',
         'tax_rate': 18.0,
         'business_metadata_json': jsonEncode({
-          'is_loose_weight': false,
-          'rack_location': 'Aisle 2 - Shelf C',
-          'shelf_label': 'Buy 1 Get 1',
+          'is_gym_plan': true,
+          'plan_days': 365,
+          'has_trainer': true,
         }),
       },
       {
-        'id': 'prod_super_apples',
-        'category_id': 'cat_super_frozen',
-        'name': 'Royal Gala Apples (Premium Loose)',
-        'sku': 'MM-PR-APPLE',
-        'barcode': '890103103',
-        'purchase_price': 120.00,
-        'selling_price': 169.00,
-        'mrp': 189.00,
-        'stock_qty': 95.0,
+        'id': 'prod_gym_pt_10',
+        'category_id': 'cat_gym_pt',
+        'name': 'Personal Training Pack (10 Sessions)',
+        'sku': 'GYM-PT-10S',
+        'barcode': '890200103',
+        'purchase_price': 3000.00,
+        'selling_price': 6000.00,
+        'mrp': 7500.00,
+        'stock_qty': 100.0,
+        'min_stock_alert': 5.0,
+        'unit': 'sessions',
+        'brand': 'Elite Coaching',
+        'tax_rate': 18.0,
+        'business_metadata_json': jsonEncode({
+          'is_gym_plan': true,
+          'plan_days': 60,
+          'has_trainer': true,
+        }),
+      },
+      {
+        'id': 'prod_gym_whey',
+        'category_id': 'cat_gym_nutrition',
+        'name': 'Optimum Nutrition Gold Standard 100% Whey 2kg',
+        'sku': 'GYM-NUTR-ON2K',
+        'barcode': '890200104',
+        'purchase_price': 2400.00,
+        'selling_price': 3200.00,
+        'mrp': 3699.00,
+        'stock_qty': 35.0,
+        'min_stock_alert': 8.0,
+        'unit': 'tub',
+        'brand': 'Optimum Nutrition',
+        'tax_rate': 18.0,
+        'business_metadata_json': jsonEncode({
+          'is_gym_plan': false,
+        }),
+      },
+      {
+        'id': 'prod_gym_monster',
+        'category_id': 'cat_gym_beverages',
+        'name': 'Monster Energy Ultra Zero Can 500ml',
+        'sku': 'GYM-BV-MNST',
+        'barcode': '890200105',
+        'purchase_price': 85.00,
+        'selling_price': 120.00,
+        'mrp': 125.00,
+        'stock_qty': 90.0,
         'min_stock_alert': 15.0,
-        'unit': 'kg',
-        'brand': 'MartMax Fresh',
-        'tax_rate': 0.0,
-        'business_metadata_json': jsonEncode({
-          'is_loose_weight': true,
-          'per_gram_price': 0.169,
-          'rack_location': 'Produce Chiller 2',
-          'shelf_label': 'Farm Fresh',
-        }),
-      },
-      {
-        'id': 'prod_super_cola',
-        'category_id': 'cat_super_beverages',
-        'name': 'Coca-Cola 750ml Bottle (Chilled)',
-        'sku': 'MM-BV-COLA750',
-        'barcode': '890103104',
-        'purchase_price': 28.00,
-        'selling_price': 40.00,
-        'mrp': 45.00,
-        'stock_qty': 240.0,
-        'min_stock_alert': 40.0,
-        'unit': 'bottle',
-        'brand': 'Coca-Cola',
+        'unit': 'can',
+        'brand': 'Monster',
         'tax_rate': 28.0,
         'business_metadata_json': jsonEncode({
-          'is_loose_weight': false,
-          'rack_location': 'Chiller Bay 1',
-          'shelf_label': 'Chilled',
+          'is_gym_plan': false,
+        }),
+      },
+      {
+        'id': 'prod_gym_shaker',
+        'category_id': 'cat_gym_gear',
+        'name': 'IronPulse Cyclone Shaker Bottle 700ml',
+        'sku': 'GYM-GR-SHK7',
+        'barcode': '890200106',
+        'purchase_price': 180.00,
+        'selling_price': 350.00,
+        'mrp': 450.00,
+        'stock_qty': 45.0,
+        'min_stock_alert': 10.0,
+        'unit': 'pc',
+        'brand': 'IronPulse',
+        'tax_rate': 12.0,
+        'business_metadata_json': jsonEncode({
+          'is_gym_plan': false,
         }),
       },
     ];
@@ -936,10 +1001,203 @@ class SeedData {
     }
 
     // Sample Sales
-    await _insertSampleSale(txn, bizId, 'MM-3001', null, 'Rohit Khanna', '9876501122', [
-      {'prod_id': 'prod_super_detergent', 'name': 'Surf Excel Detergent 1kg', 'qty': 2.0, 'price': 185.00, 'tax_rate': 18.0},
-      {'prod_id': 'prod_super_cola', 'name': 'Coca-Cola 750ml', 'qty': 6.0, 'price': 40.00, 'tax_rate': 28.0},
-    ], 'Card');
+    await _insertSampleSale(txn, bizId, 'GYM-101', null, 'Devendra Patel', '9822011223', [
+      {'prod_id': 'prod_gym_pass_annual', 'name': 'Annual VIP All-Access Membership', 'qty': 1.0, 'price': 14000.00, 'tax_rate': 18.0},
+    ], 'UPI');
+  }
+
+  // -------------------------------------------------------------
+  // 3C. LIBRARY & BOOK STORE SEED
+  // -------------------------------------------------------------
+  static Future<void> _seedLibrary(Transaction txn) async {
+    const bizId = 'biz_lib_01';
+    final now = DateTime.now();
+
+    await txn.insert(DatabaseTables.tableBusinesses, {
+      'id': bizId,
+      'name': 'Athenaeum Central Library',
+      'type': BusinessType.library.id,
+      'address': '7 Heritage Boulevard, Knowledge Square',
+      'phone': '+91 98450 11998',
+      'email': 'info@athenaeumlib.org',
+      'tax_number': '27LIBORG8899A1',
+      'currency_symbol': '₹',
+      'currency_code': 'INR',
+      'invoice_prefix': 'LIB-',
+      'default_tax_rate': 0.0,
+      'receipt_footer': 'Reading is knowledge. Keep pages pristine and return on time!',
+      'created_at': now.toIso8601String(),
+      'settings_json': jsonEncode({
+        'circulation_ledger_enabled': true,
+        'overdue_fines_per_day': 5.0,
+        'shelf_rack_mapping': true,
+      }),
+    });
+
+    final categories = [
+      {'id': 'cat_lib_membership', 'name': 'Reader Subscriptions', 'icon': 'badge', 'color_hex': '#0369A1'},
+      {'id': 'cat_lib_tech', 'name': 'Computer Science & Tech', 'icon': 'terminal', 'color_hex': '#0284C7'},
+      {'id': 'cat_lib_business', 'name': 'Business & Economics', 'icon': 'trending_up', 'color_hex': '#F59E0B'},
+      {'id': 'cat_lib_history', 'name': 'History & Culture', 'icon': 'auto_stories', 'color_hex': '#8B5CF6'},
+      {'id': 'cat_lib_services', 'name': 'Library Services & Fines', 'icon': 'receipt_long', 'color_hex': '#10B981'},
+    ];
+    for (final c in categories) {
+      await txn.insert(DatabaseTables.tableCategories, {
+        'id': c['id']!,
+        'business_id': bizId,
+        'name': c['name']!,
+        'icon': c['icon']!,
+        'color_hex': c['color_hex']!,
+        'sort_order': 0,
+      });
+    }
+
+    final products = [
+      {
+        'id': 'prod_lib_mem_annual',
+        'category_id': 'cat_lib_membership',
+        'name': 'Annual Library Reader Membership Pass',
+        'sku': 'LIB-MEM-ANN',
+        'barcode': '9780000001',
+        'purchase_price': 200.00,
+        'selling_price': 800.00,
+        'mrp': 1000.00,
+        'stock_qty': 999.0,
+        'min_stock_alert': 10.0,
+        'unit': 'year',
+        'brand': 'Athenaeum Library',
+        'tax_rate': 0.0,
+        'business_metadata_json': jsonEncode({
+          'isbn': '',
+          'rack_location': 'Front Circulation Desk',
+        }),
+      },
+      {
+        'id': 'prod_lib_cleancode',
+        'category_id': 'cat_lib_tech',
+        'name': 'Clean Code: Handbook of Agile Software Craftsmanship',
+        'sku': 'LIB-BK-CLNCD',
+        'barcode': '9780132350884',
+        'purchase_price': 450.00,
+        'selling_price': 650.00,
+        'mrp': 799.00,
+        'stock_qty': 5.0,
+        'min_stock_alert': 1.0,
+        'unit': 'copy',
+        'brand': 'Prentice Hall',
+        'tax_rate': 0.0,
+        'business_metadata_json': jsonEncode({
+          'isbn': '978-0132350884',
+          'author': 'Robert C. Martin',
+          'rack_location': 'Rack CS-01, Shelf 2',
+        }),
+      },
+      {
+        'id': 'prod_lib_psychology',
+        'category_id': 'cat_lib_business',
+        'name': 'The Psychology of Money',
+        'sku': 'LIB-BK-PSYMON',
+        'barcode': '9789390166268',
+        'purchase_price': 260.00,
+        'selling_price': 399.00,
+        'mrp': 499.00,
+        'stock_qty': 6.0,
+        'min_stock_alert': 2.0,
+        'unit': 'copy',
+        'brand': 'Jaico Publishing',
+        'tax_rate': 0.0,
+        'business_metadata_json': jsonEncode({
+          'isbn': '978-9390166268',
+          'author': 'Morgan Housel',
+          'rack_location': 'Rack B-03, Shelf 1',
+        }),
+      },
+      {
+        'id': 'prod_lib_sapiens',
+        'category_id': 'cat_lib_history',
+        'name': 'Sapiens: A Brief History of Humankind',
+        'sku': 'LIB-BK-SAPIENS',
+        'barcode': '9780099590088',
+        'purchase_price': 340.00,
+        'selling_price': 499.00,
+        'mrp': 599.00,
+        'stock_qty': 5.0,
+        'min_stock_alert': 1.0,
+        'unit': 'copy',
+        'brand': 'Vintage Books',
+        'tax_rate': 0.0,
+        'business_metadata_json': jsonEncode({
+          'isbn': '978-0099590088',
+          'author': 'Yuval Noah Harari',
+          'rack_location': 'Rack H-02, Shelf 4',
+        }),
+      },
+      {
+        'id': 'prod_lib_fine_fee',
+        'category_id': 'cat_lib_services',
+        'name': 'Overdue Book Late Return Fine',
+        'sku': 'LIB-FEE-LATE',
+        'barcode': '9780000002',
+        'purchase_price': 0.00,
+        'selling_price': 20.00,
+        'mrp': 20.00,
+        'stock_qty': 9999.0,
+        'min_stock_alert': 1.0,
+        'unit': 'fee',
+        'brand': 'Circulation Services',
+        'tax_rate': 0.0,
+        'business_metadata_json': jsonEncode({
+          'isbn': '',
+          'rack_location': 'Helpdesk',
+        }),
+      },
+      {
+        'id': 'prod_lib_print_service',
+        'category_id': 'cat_lib_services',
+        'name': 'Reading Room Document Printing / Xerox',
+        'sku': 'LIB-SRV-PRINT',
+        'barcode': '9780000003',
+        'purchase_price': 1.50,
+        'selling_price': 5.00,
+        'mrp': 5.00,
+        'stock_qty': 5000.0,
+        'min_stock_alert': 100.0,
+        'unit': 'page',
+        'brand': 'Library Media Center',
+        'tax_rate': 18.0,
+        'business_metadata_json': jsonEncode({
+          'isbn': '',
+          'rack_location': 'Stationery Counter',
+        }),
+      },
+    ];
+
+    for (final p in products) {
+      await txn.insert(DatabaseTables.tableProducts, {
+        'id': p['id']!,
+        'business_id': bizId,
+        'category_id': p['category_id']!,
+        'name': p['name']!,
+        'sku': p['sku']!,
+        'barcode': p['barcode'] ?? '',
+        'purchase_price': p['purchase_price']!,
+        'selling_price': p['selling_price']!,
+        'mrp': p['mrp']!,
+        'stock_qty': p['stock_qty']!,
+        'min_stock_alert': p['min_stock_alert']!,
+        'unit': p['unit']!,
+        'brand': p['brand'] ?? '',
+        'tax_rate': p['tax_rate']!,
+        'is_active': 1,
+        'created_at': now.toIso8601String(),
+        'business_metadata_json': p['business_metadata_json']!,
+      });
+    }
+
+    // Sample Sales
+    await _insertSampleSale(txn, bizId, 'LIB-1001', null, 'Meera Iyer', '9845077889', [
+      {'prod_id': 'prod_lib_mem_annual', 'name': 'Annual Library Reader Membership Pass', 'qty': 1.0, 'price': 800.00, 'tax_rate': 0.0},
+    ], 'Cash');
   }
 
   // -------------------------------------------------------------

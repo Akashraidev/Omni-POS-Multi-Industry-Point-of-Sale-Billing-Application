@@ -4,7 +4,6 @@ import 'package:ominipos_app/core/theme/app_theme.dart';
 import 'package:ominipos_app/data/models/customer.dart';
 import 'package:ominipos_app/data/models/product.dart';
 import 'package:ominipos_app/modules/business_registry.dart';
-import 'package:ominipos_app/modules/business_type.dart';
 import 'package:ominipos_app/modules/medical/medical_batch_analyzer.dart';
 import 'package:ominipos_app/modules/medical/screens/expiry_tracker_screen.dart';
 import 'package:ominipos_app/modules/medical/screens/narcotics_register_screen.dart';
@@ -12,7 +11,9 @@ import 'package:ominipos_app/providers/business_provider.dart';
 import 'package:ominipos_app/providers/cart_provider.dart';
 import 'package:ominipos_app/providers/product_provider.dart';
 import 'package:ominipos_app/providers/sales_provider.dart';
+import 'package:ominipos_app/providers/auth_provider.dart';
 import 'package:ominipos_app/screens/sector_selection/sector_selection_screen.dart';
+import 'package:ominipos_app/screens/splash/splash_screen.dart';
 import 'package:provider/provider.dart';
 
 void main() {
@@ -21,9 +22,9 @@ void main() {
   });
 
   group('BusinessModuleRegistry Tests', () {
-    test('All 6 business modules are registered and accessible', () {
+    test('All 7 business modules are registered and accessible', () {
       final modules = BusinessModuleRegistry.getAllModules();
-      expect(modules.length, equals(6));
+      expect(modules.length, equals(7));
 
       final medical = BusinessModuleRegistry.getModule(BusinessType.medical);
       expect(medical.name, contains('Medical'));
@@ -36,9 +37,13 @@ void main() {
       final grocery = BusinessModuleRegistry.getModule(BusinessType.grocery);
       expect(grocery.name, contains('Grocery'));
 
-      final supermarket = BusinessModuleRegistry.getModule(BusinessType.supermarket);
-      expect(supermarket.name, contains('Supermarket'));
-      expect(supermarket.navigationItems.length, greaterThanOrEqualTo(1));
+      final gym = BusinessModuleRegistry.getModule(BusinessType.gym);
+      expect(gym.name, contains('Gym'));
+      expect(gym.navigationItems.length, greaterThanOrEqualTo(1));
+
+      final library = BusinessModuleRegistry.getModule(BusinessType.library);
+      expect(library.name, contains('Library'));
+      expect(library.navigationItems.length, greaterThanOrEqualTo(1));
 
       final electronics = BusinessModuleRegistry.getModule(BusinessType.electronics);
       expect(electronics.name, contains('Electronics'));
@@ -208,9 +213,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Choose Your Sector'), findsOneWidget);
-      // 6 sector cards, one per BusinessType.
+      // 7 sector cards, one per BusinessType.
       expect(find.text('Medical'), findsOneWidget);
-      expect(find.text('Supermarket'), findsOneWidget);
+      expect(find.text('Gym'), findsOneWidget);
+      expect(find.text('Library'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
@@ -240,15 +246,16 @@ void main() {
   });
 
   group('BusinessType Sector Coverage Tests', () {
-    test('All 6 expected sectors exist with unique ids', () {
-      expect(BusinessType.values.length, equals(6));
+    test('All 7 expected sectors exist with unique ids', () {
+      expect(BusinessType.values.length, equals(7));
       final ids = BusinessType.values.map((t) => t.id).toSet();
-      expect(ids.length, equals(6));
+      expect(ids.length, equals(7));
       expect(ids, containsAll(const [
         'medical',
         'restaurant',
         'grocery',
-        'supermarket',
+        'gym',
+        'library',
         'electronics',
         'garment',
       ]));
@@ -404,5 +411,61 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   });
+
+  group('SplashScreen Responsive Tests', () {
+    Widget wrapSplash() {
+      return MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => BusinessProvider()),
+          ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ],
+        child: const MaterialApp(
+          debugShowCheckedModeBanner: false,
+          home: SplashScreen(),
+        ),
+      );
+    }
+
+    testWidgets('renders without overflow on desktop window (1280x683)',
+        (tester) async {
+      tester.view.physicalSize = const Size(1280, 683);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(wrapSplash());
+      await tester.pump(const Duration(milliseconds: 200));
+
+      expect(find.text('OminiPOS'), findsOneWidget);
+      expect(find.text('ONE PLATFORM. EVERY SECTOR.'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('renders without overflow on tablet (1024x768)',
+        (tester) async {
+      tester.view.physicalSize = const Size(1024, 768);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(wrapSplash());
+      await tester.pump(const Duration(milliseconds: 200));
+
+      expect(find.text('OminiPOS'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('renders without overflow on phone (360x640)',
+        (tester) async {
+      tester.view.physicalSize = const Size(360, 640);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(wrapSplash());
+      await tester.pump(const Duration(milliseconds: 200));
+
+      expect(find.text('OminiPOS'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  });
 }
+
 

@@ -55,9 +55,13 @@ class _BusinessSetupWizardScreenState extends State<BusinessSetupWizardScreen> {
         _prefixCtrl.text = 'GRO-';
         _defaultTaxRate = 5.0;
         break;
-      case BusinessType.supermarket:
-        _prefixCtrl.text = 'SUP-';
-        _defaultTaxRate = 5.0;
+      case BusinessType.gym:
+        _prefixCtrl.text = 'GYM-';
+        _defaultTaxRate = 18.0;
+        break;
+      case BusinessType.library:
+        _prefixCtrl.text = 'LIB-';
+        _defaultTaxRate = 0.0;
         break;
       case BusinessType.electronics:
         _prefixCtrl.text = 'ELC-';

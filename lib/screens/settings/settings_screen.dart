@@ -106,7 +106,7 @@ class SettingsScreen extends StatelessWidget {
                   ListTile(
                     leading: Icon(Icons.swap_horiz_rounded, color: currentBiz?.type.primaryColor ?? theme.colorScheme.primary),
                     title: const Text('Switch Sector', style: TextStyle(fontWeight: FontWeight.w700)),
-                    subtitle: const Text('Open the sector picker to choose Medical, Restaurant, Grocery, Supermarket, Electronics or Garments'),
+                    subtitle: const Text('Open the sector picker to choose Medical, Restaurant, Grocery, Gym, Library, Electronics or Garments'),
                     trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
                     onTap: () {
                       Navigator.push(

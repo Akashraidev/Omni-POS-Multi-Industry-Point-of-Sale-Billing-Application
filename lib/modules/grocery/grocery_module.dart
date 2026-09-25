@@ -14,7 +14,7 @@ class GroceryBusinessModule implements BusinessModuleInterface {
   String get id => 'grocery';
 
   @override
-  String get name => 'Grocery / Supermarket';
+  String get name => 'Grocery / Kirana';
 
   @override
   String get description => 'Weight-based pricing, unit conversion, and fast touch checkout mode.';
@@ -52,7 +52,7 @@ class GroceryBusinessModule implements BusinessModuleInterface {
               const SizedBox(width: AppTokens.spaceMD),
               const Expanded(
                 child: Text(
-                  'Supermarket Quick Tools',
+                  'Grocery Quick Tools',
                   style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
                 ),
               ),
@@ -140,7 +140,7 @@ class GroceryBusinessModule implements BusinessModuleInterface {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Grocery & Supermarket Options', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+        const Text('Grocery & Kirana Options', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
         const SizedBox(height: AppTokens.spaceMD),
         SwitchListTile(
           title: const Text('Sold by Loose Weight (Scale)'),
