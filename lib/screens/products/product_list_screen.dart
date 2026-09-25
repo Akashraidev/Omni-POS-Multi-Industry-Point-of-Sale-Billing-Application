@@ -328,21 +328,56 @@ class _ProductListScreenState extends State<ProductListScreen> {
                             child: ChoiceChip(
                               label: const Text('All Categories', style: TextStyle(fontSize: 12)),
                               selected: prodProv.selectedCategoryId == 'all',
+                              selectedColor: theme.colorScheme.primary,
+                              backgroundColor: theme.brightness == Brightness.dark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                              checkmarkColor: Colors.white,
+                              labelStyle: TextStyle(
+                                fontSize: 12,
+                                fontWeight: prodProv.selectedCategoryId == 'all' ? FontWeight.w700 : FontWeight.w500,
+                                color: prodProv.selectedCategoryId == 'all'
+                                    ? Colors.white
+                                    : (theme.brightness == Brightness.dark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A)),
+                              ),
+                              side: BorderSide(
+                                color: prodProv.selectedCategoryId == 'all'
+                                    ? theme.colorScheme.primary
+                                    : (theme.brightness == Brightness.dark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                                width: 1,
+                              ),
                               onSelected: (_) {
                                 if (currentBiz != null) prodProv.setCategory(currentBiz.id, 'all');
                               },
                             ),
                           ),
-                          ...prodProv.categories.map((cat) => Padding(
-                                padding: const EdgeInsets.only(right: 6),
-                                child: ChoiceChip(
-                                  label: Text(cat.name, style: const TextStyle(fontSize: 12)),
-                                  selected: prodProv.selectedCategoryId == cat.id,
-                                  onSelected: (_) {
-                                    if (currentBiz != null) prodProv.setCategory(currentBiz.id, cat.id);
-                                  },
+                          ...prodProv.categories.map((cat) {
+                            final isSel = prodProv.selectedCategoryId == cat.id;
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 6),
+                              child: ChoiceChip(
+                                label: Text(cat.name, style: const TextStyle(fontSize: 12)),
+                                selected: isSel,
+                                selectedColor: theme.colorScheme.primary,
+                                backgroundColor: theme.brightness == Brightness.dark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                                checkmarkColor: Colors.white,
+                                labelStyle: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
+                                  color: isSel
+                                      ? Colors.white
+                                      : (theme.brightness == Brightness.dark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A)),
                                 ),
-                              )),
+                                side: BorderSide(
+                                  color: isSel
+                                      ? theme.colorScheme.primary
+                                      : (theme.brightness == Brightness.dark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                                  width: 1,
+                                ),
+                                onSelected: (_) {
+                                  if (currentBiz != null) prodProv.setCategory(currentBiz.id, cat.id);
+                                },
+                              ),
+                            );
+                          }),
                         ],
                       ),
                     ),

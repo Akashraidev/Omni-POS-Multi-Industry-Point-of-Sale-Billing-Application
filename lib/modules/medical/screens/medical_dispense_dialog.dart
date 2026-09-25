@@ -994,57 +994,6 @@ class _MedicalDispenseDialogState extends State<MedicalDispenseDialog> {
   }
 }
 
-class _DosageChip extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final bool selected;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _DosageChip({
-    required this.label,
-    required this.icon,
-    required this.selected,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: AppTokens.borderPill,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: selected ? color : color.withAlpha(16),
-          borderRadius: AppTokens.borderPill,
-          border: Border.all(
-            color: selected ? color : color.withAlpha(70),
-            width: selected ? 1.5 : 1,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 14, color: selected ? Colors.white : color),
-            const SizedBox(width: 5),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11.5,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
-                color: selected ? Colors.white : color,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _ModeSegment extends StatelessWidget {
   final String label;
   final IconData icon;

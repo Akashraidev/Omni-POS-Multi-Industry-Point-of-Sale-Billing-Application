@@ -312,17 +312,24 @@ class _EstimatesScreenState extends State<EstimatesScreen> {
 
   Widget _buildFilterChip(String key, String label, EstimateProvider prov) {
     final isSelected = prov.selectedFilter == key;
-    final primary = Theme.of(context).colorScheme.primary;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primary = theme.colorScheme.primary;
 
     return ChoiceChip(
       label: Text(label),
       selected: isSelected,
       onSelected: (_) => prov.setFilter(key),
-      selectedColor: primary.withAlpha(25),
+      selectedColor: primary.withAlpha(isDark ? 50 : 25),
+      backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
       labelStyle: TextStyle(
         fontSize: 12,
         fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
-        color: isSelected ? primary : null,
+        color: isSelected ? primary : (isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A)),
+      ),
+      side: BorderSide(
+        color: isSelected ? primary : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+        width: 1,
       ),
     );
   }

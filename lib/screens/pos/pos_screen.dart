@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_tokens.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../core/widgets/app_badge.dart';
@@ -301,11 +302,7 @@ class _PosScreenState extends State<PosScreen> {
                     ),
                 ],
               ),
-              IconButton(
-                tooltip: _isGridView ? 'Switch to List View' : 'Switch to Grid View',
-                icon: Icon(_isGridView ? Icons.view_list_rounded : Icons.grid_view_rounded),
-                onPressed: () => setState(() => _isGridView = !_isGridView),
-              ),
+              const SizedBox(width: 6),
             ],
           ),
           body: LayoutBuilder(
@@ -368,6 +365,9 @@ class _PosScreenState extends State<PosScreen> {
   }) {
     final heldCount = context.watch<InventoryProvider>().heldBills.length;
     final cartHasItems = context.watch<CartProvider>().items.isNotEmpty;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primaryColor = theme.colorScheme.primary;
 
     return Column(
       children: [
@@ -461,17 +461,52 @@ class _PosScreenState extends State<PosScreen> {
                           child: ChoiceChip(
                             label: const Text('All Items'),
                             selected: productProv.selectedCategoryId == 'all',
+                            selectedColor: primaryColor,
+                            backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                            checkmarkColor: Colors.white,
+                            labelStyle: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: productProv.selectedCategoryId == 'all' ? FontWeight.w700 : FontWeight.w500,
+                              color: productProv.selectedCategoryId == 'all'
+                                  ? Colors.white
+                                  : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
+                            ),
+                            side: BorderSide(
+                              color: productProv.selectedCategoryId == 'all'
+                                  ? primaryColor
+                                  : (isDark ? AppColors.borderDark : AppColors.borderLight),
+                              width: 1,
+                            ),
                             onSelected: (_) => productProv.setCategory(businessId, 'all'),
                           ),
                         ),
-                        ...categories.map((c) => Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: ChoiceChip(
-                                label: Text(c.name),
-                                selected: productProv.selectedCategoryId == c.id,
-                                onSelected: (_) => productProv.setCategory(businessId, c.id),
+                        ...categories.map((c) {
+                          final isSelected = productProv.selectedCategoryId == c.id;
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: ChoiceChip(
+                              label: Text(c.name),
+                              selected: isSelected,
+                              selectedColor: primaryColor,
+                              backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                              checkmarkColor: Colors.white,
+                              labelStyle: TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                color: isSelected
+                                    ? Colors.white
+                                    : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
                               ),
-                            )),
+                              side: BorderSide(
+                                color: isSelected
+                                    ? primaryColor
+                                    : (isDark ? AppColors.borderDark : AppColors.borderLight),
+                                width: 1,
+                              ),
+                              onSelected: (_) => productProv.setCategory(businessId, c.id),
+                            ),
+                          );
+                        }),
                       ],
                     ),
                   ),
@@ -930,6 +965,14 @@ class _PosScreenState extends State<PosScreen> {
                 title: const Text('Price: High to Low'),
                 onTap: () {
                   prodProv.setSortBy(businessId, 'price_high');
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: Icon(_isGridView ? Icons.view_list_rounded : Icons.grid_view_rounded),
+                title: Text(_isGridView ? 'Switch to List View' : 'Switch to Grid View'),
+                onTap: () {
+                  setState(() => _isGridView = !_isGridView);
                   Navigator.pop(context);
                 },
               ),

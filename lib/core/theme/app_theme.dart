@@ -93,10 +93,23 @@ class AppTheme {
         indicatorSize: TabBarIndicatorSize.tab,
       ),
       chipTheme: ChipThemeData(
-        selectedColor: primary.withAlpha(35),
+        backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
+        selectedColor: primary.withAlpha(isDark ? 45 : 30),
+        disabledColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
         checkmarkColor: primary,
-        labelStyle: const TextStyle(fontWeight: FontWeight.w500),
+        labelStyle: TextStyle(
+          fontWeight: FontWeight.w500,
+          fontSize: 13,
+          color: textPrimary,
+        ),
+        secondaryLabelStyle: TextStyle(
+          fontWeight: FontWeight.w700,
+          fontSize: 13,
+          color: primary,
+        ),
+        side: BorderSide(color: baseBorder, width: 1),
         shape: RoundedRectangleBorder(borderRadius: AppTokens.borderMD),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
       ),
       progressIndicatorTheme: ProgressIndicatorThemeData(
         color: primary,
